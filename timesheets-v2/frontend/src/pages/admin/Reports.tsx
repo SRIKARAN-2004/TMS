@@ -192,6 +192,26 @@ export default function AdminReports() {
     })))
   }
 
+  function handleExportEffectiveness() {
+    exportToCsv('employee-effectiveness', effectiveness.map((e) => ({
+      Employee: e.name,
+      Role: roleLabel(e.userId),
+      Manager: e.managerName,
+      'Total Hours': e.totalHours.toFixed(1),
+      'Project-based %': e.projectEffectiveness.toFixed(1),
+      'Activity-based %': e.activityEffectiveness.toFixed(1),
+    })))
+  }
+
+  function handleExportContributions() {
+    exportToCsv('project-contribution', contributions.map((c) => ({
+      Project: c.projectName,
+      Employee: c.userName,
+      Hours: c.hours.toFixed(1),
+      'Contribution %': c.contributionPercent.toFixed(1),
+    })))
+  }
+
   const hasFilters = filterProject || filterEmployee || filterManager || filterType || filterFrom || filterTo
 
   return (
@@ -201,7 +221,7 @@ export default function AdminReports() {
         subtitle="Organization-wide hours - filter by project, employee, type, or date range"
         action={
           <button className="btn-primary" onClick={handleExport} disabled={loading || filteredLogs.length === 0}>
-            <span className="nav-icon" style={{ width: 14, height: 14 }}><Icon.Download /></span> Export CSV
+            <span className="nav-icon" style={{ width: 14, height: 14 }}><Icon.Download /></span> Export Time Logs
           </button>
         }
       />
@@ -271,8 +291,15 @@ export default function AdminReports() {
       </div>
 
       <div className="card overflow-hidden mb-5">
-        <div className="px-5 py-4 border-b border-border font-display font-semibold text-ink">
-          Employee Effectiveness
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <div className="font-display font-semibold text-ink">Employee Effectiveness</div>
+          <button
+            className="btn-ghost text-xs"
+            onClick={handleExportEffectiveness}
+            disabled={loading || effectiveness.length === 0}
+          >
+            <span className="nav-icon" style={{ width: 14, height: 14 }}><Icon.Download /></span> Export
+          </button>
         </div>
         <table className="w-full text-sm">
           <thead className="th-row">
@@ -315,12 +342,21 @@ export default function AdminReports() {
       <div className="card overflow-hidden mb-5">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="font-display font-semibold text-ink">Project Contribution</div>
-          <button
-            className="btn-ghost text-xs"
-            onClick={() => setContributionSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
-          >
-            Project Name {contributionSort === 'asc' ? '↑ A-Z' : '↓ Z-A'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              className="btn-ghost text-xs"
+              onClick={() => setContributionSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
+            >
+              Project Name {contributionSort === 'asc' ? '↑ A-Z' : '↓ Z-A'}
+            </button>
+            <button
+              className="btn-ghost text-xs"
+              onClick={handleExportContributions}
+              disabled={loading || contributions.length === 0}
+            >
+              <span className="nav-icon" style={{ width: 14, height: 14 }}><Icon.Download /></span> Export
+            </button>
+          </div>
         </div>
         <table className="w-full text-sm">
           <thead className="th-row">

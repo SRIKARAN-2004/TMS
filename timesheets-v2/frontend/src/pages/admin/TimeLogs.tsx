@@ -10,7 +10,7 @@ import { adminApi, employeeApi } from '../../api/roles'
 import { useAuth } from '../../context/AuthContext'
 import { notifyError } from '../../lib/toast'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 10
 
 export default function AdminTimeLogs() {
   const { user } = useAuth()

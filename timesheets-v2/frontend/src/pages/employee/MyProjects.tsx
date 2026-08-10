@@ -71,9 +71,7 @@ export default function EmployeeMyProjects() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="btn-ghost" onClick={() => navigate(`/employee/tasks?project=${p.id}`)}>
-                View Tasks
-              </button>
+  
               <button className="btn-ghost" onClick={() => openView(p)}>View Project</button>
             </div>
           </div>

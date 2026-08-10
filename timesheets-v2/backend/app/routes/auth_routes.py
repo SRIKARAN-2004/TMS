@@ -26,6 +26,8 @@ from app.models.user import User, Password
 from app.models.revoked_token import RevokedToken
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+ACCESS_COOKIE_NAME = "access_token"
+REFRESH_COOKIE_NAME = "refresh_token"
 
 CSRF_COOKIE_NAME = "csrf_token"
 CSRF_HEADER_NAME = "X-CSRF-Token"

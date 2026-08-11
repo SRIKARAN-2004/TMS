@@ -95,15 +95,41 @@ function isAuthEndpoint(url: string | undefined): boolean {
   return url.endsWith(ENDPOINTS.auth.refresh) || url.endsWith(ENDPOINTS.auth.login)
 }
 
+// A 401 from this endpoint means "current password was wrong" - a normal
+// business-logic rejection the caller (ChangePasswordModal) needs to show
+// to the user, not a sign the session/access-token expired. Without this
+// check, handleUnauthorized would refresh the (still-valid) access token,
+// retry the request, get the same 401 again since the password is still
+// wrong, and then bounce the user to /login - silently discarding the
+// actual "wrong password" error and logging them out for no reason.
+function isChangePasswordEndpoint(url: string | undefined): boolean {
+  if (!url) return false
+  return url.endsWith('/employee/change-password')
+}
+
 function handleUnauthorized(error: any) {
   const originalRequest = error.config
+
+  if (isChangePasswordEndpoint(originalRequest?.url)) {
+    return Promise.reject(error)
+  }
+
+  // A 401 from /auth/login itself means "wrong username/password" - there
+  // was never a session to begin with, so this isn't a session expiry.
+  // Reject with the original error untouched so the real backend message
+  // (e.g. "Invalid username or password") reaches Login.tsx via
+  // toErrorMessage, instead of being replaced by bounceToLogin's generic
+  // SessionExpiredError message.
+  if (originalRequest?.url?.endsWith(ENDPOINTS.auth.login)) {
+    return Promise.reject(error)
+  }
 
   // Don't try to refresh-and-retry a request that has already been
   // retried once (avoids an infinite loop if the backend somehow keeps
   // returning 401 after a "successful" refresh), and don't try to refresh
-  // in response to /auth/refresh or /auth/login themselves failing - a
-  // 401 from either of those means there's no session to recover, full
-  // stop, so go straight to the redirect below instead.
+  // in response to /auth/refresh itself failing - a 401 from it means
+  // there's no session to recover, full stop, so go straight to the
+  // redirect below instead.
   if (originalRequest?._retry || isAuthEndpoint(originalRequest?.url)) {
     return bounceToLogin()
   }

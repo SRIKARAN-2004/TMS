@@ -44,7 +44,7 @@ export default function ChangePasswordModal({ open, onClose, forced = false, onS
   async function handleSubmit() {
     setError(null)
     if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters.')
+      setError('New password must be at least 8 characters.')
       return
     }
     if (newPassword !== confirmPassword) {

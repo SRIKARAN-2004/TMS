@@ -1,42 +1,77 @@
-import { useState } from 'react'
-import { useAuth } from '../../context/AuthContext'
-import PageHeader from '../../components/PageHeader'
-import ChangePasswordModal from '../../components/ChangePasswordModal'
+import { useEffect, useState } from 'react'
 
+import { employeeApi } from '../../api/roles'
+import ChangePasswordModal from '../../components/ChangePasswordModal'
+import { Roles } from '../../lib/roles'
+
+// Matches the Manager/Employee "My Profile" layout exactly (see
+// manager/Settings.tsx and employee/Profile.tsx) rather than the old
+// plain-form Settings page - Admin uses the same /employee/profile
+// endpoint, since that route already allows all three roles.
 export default function AdminSettings() {
-  const { user } = useAuth()
+  const [profile, setProfile] = useState<any>(null)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+
+  useEffect(() => {
+    employeeApi.myProfile().then(setProfile)
+  }, [])
+
+  if (!profile) {
+    return <p className="text-muted text-sm">Loading…</p>
+  }
+
+  const primaryRole = profile.roles.includes(Roles.ADMIN)
+    ? 'Admin'
+    : profile.roles.includes(Roles.MANAGER)
+    ? 'Manager'
+    : 'Employee'
+
+  const rows: [string, string][] = [
+    ['User ID', profile.userid || '—'],
+    ['Full Name', profile.name || '—'],
+    ['Company Email', profile.company_mail || '—'],
+    ['Phone Number', profile.phone_number || '—'],
+    ['Username', profile.username || '—'],
+    ['Role', primaryRole],
+    ['Status', profile.isAlive ? 'Active' : 'Inactive'],
+  ]
 
   return (
     <div>
-      <PageHeader title="Settings" subtitle="Account and system preferences" />
-      <div className="card p-6 max-w-lg space-y-4">
-        <div>
-          <label htmlFor="settings-name" className="text-xs text-muted mb-1 block">Name</label>
-          <input id="settings-name" className="input" value={user?.name || ''} disabled />
-        </div>
-        <div>
-          <label htmlFor="settings-user-id" className="text-xs text-muted mb-1 block">User ID</label>
-          <input id="settings-user-id" className="input" value={user?.userid || ''} disabled />
-        </div>
-        <div>
-          <label className="text-xs text-muted mb-1 block">Roles</label>
-          <div className="flex gap-2">
-            {user?.roles.map((r) => (
-              <span key={r} className="badge bg-blue-50 text-blue-600">
-                {r}
+      <h1 className="text-2xl font-display font-bold text-ink">My Profile</h1>
+      <p className="text-sm text-muted mt-1 mb-6">Your account information</p>
+
+      <div className="card p-6 max-w-lg">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center font-display font-semibold text-lg text-white shrink-0">
+            {profile.name?.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
+          </div>
+          <div>
+            <div className="font-display font-semibold text-lg text-ink">{profile.name}</div>
+            <div className="text-sm text-muted">{profile.company_mail}</div>
+            <div className="flex gap-2 mt-1.5">
+              <span className="badge bg-red-50 text-red-500">{primaryRole}</span>
+              <span className={`badge ${profile.isAlive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                {profile.isAlive ? 'Active' : 'Inactive'}
               </span>
-            ))}
+            </div>
           </div>
         </div>
-        <div className="pt-2">
+
+        <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-3">Account Details</div>
+        <div className="divide-y divide-border">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between py-2.5 text-sm">
+              <span className="text-muted">{label}</span>
+              <span className="font-medium text-ink">{value}</span>
+            </div>
+          ))}
+        </div>
+        <div className="pt-4">
           <button className="btn-ghost" onClick={() => setChangePasswordOpen(true)}>
             Change Password
           </button>
         </div>
-        <p className="text-xs text-muted pt-2">
-          To edit account details, use the Users page.
-        </p>
       </div>
 
       <ChangePasswordModal open={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />

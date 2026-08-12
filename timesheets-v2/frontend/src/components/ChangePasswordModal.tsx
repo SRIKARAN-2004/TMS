@@ -116,7 +116,7 @@ export default function ChangePasswordModal({ open, onClose, forced = false, onS
               className="input"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
             />
           </div>
           <div>

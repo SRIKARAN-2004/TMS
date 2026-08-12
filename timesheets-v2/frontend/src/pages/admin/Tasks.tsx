@@ -10,7 +10,7 @@ import { adminApi } from '../../api/roles'
 import { notifyError } from '../../lib/toast'
 import { toErrorMessage } from '../../lib/exceptions'
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = 10
 
 export default function AdminTasks() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -27,6 +27,8 @@ export default function AdminTasks() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [filterManager, setFilterManager] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   function load() {
     setLoading(true)
@@ -48,15 +50,31 @@ export default function AdminTasks() {
     load()
   }, [projectFilter])
 
-  const filteredProjectName = projectFilter
-    ? projects.find((p) => String(p.id) === projectFilter)?.name
-    : null
-
-  function clearProjectFilter() {
-    setSearchParams({})
+  function handleProjectFilterChange(value: string) {
+    if (value) setSearchParams({ project: value })
+    else setSearchParams({})
   }
 
-  const pagedTasks = tasks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const managerOptions = Array.from(new Set(tasks.map((t) => t.manager_name).filter(Boolean)))
+
+  const filteredTasks = tasks.filter((t) => {
+    if (filterManager && t.manager_name !== filterManager) return false
+    if (filterStatus && (filterStatus === 'active' ? !t.isAlive : t.isAlive)) return false
+    return true
+  })
+
+  const hasFilters = projectFilter || filterManager || filterStatus
+
+  function clearFilters() {
+    setSearchParams({})
+    setFilterManager('')
+    setFilterStatus('')
+    setPage(1)
+  }
+
+  useEffect(() => setPage(1), [filterManager, filterStatus])
+
+  const pagedTasks = filteredTasks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   function openCreate() {
     setEditing(null)
@@ -124,18 +142,47 @@ export default function AdminTasks() {
         }
       />
 
-      {projectFilter && (
-        <div className="flex items-center justify-between bg-blue-50 text-blue-700 text-sm rounded-lg px-4 py-2.5 mb-4">
-          <span>
-            Showing tasks for <span className="font-medium">{filteredProjectName || `project #${projectFilter}`}</span> only
-          </span>
-          <button className="text-blue-700 underline font-medium" onClick={clearProjectFilter}>
-            Clear filter — show all tasks
-          </button>
+      <div className="card p-4 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-end">
+          <div>
+            <label htmlFor="tasks-filter-project" className="text-xs text-muted mb-1 block">Project</label>
+            <select
+              id="tasks-filter-project"
+              className="input"
+              value={projectFilter || ''}
+              onChange={(e) => handleProjectFilterChange(e.target.value)}
+            >
+              <option value="">All Projects</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="tasks-filter-manager" className="text-xs text-muted mb-1 block">Manager</label>
+            <select id="tasks-filter-manager" className="input" value={filterManager} onChange={(e) => setFilterManager(e.target.value)}>
+              <option value="">All Managers</option>
+              {managerOptions.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="tasks-filter-status" className="text-xs text-muted mb-1 block">Status</label>
+            <select id="tasks-filter-status" className="input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="removed">Removed</option>
+            </select>
+          </div>
         </div>
-      )}
+        {hasFilters && (
+          <button className="btn-ghost mt-3" onClick={clearFilters}>Clear Filters</button>
+        )}
+      </div>
 
       <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="th-row">
             <tr className="text-left border-b border-border">
@@ -152,8 +199,10 @@ export default function AdminTasks() {
             {loading && (
               <tr><td colSpan={7} className="px-5 py-6 text-center text-muted">Loading…</td></tr>
             )}
-            {!loading && tasks.length === 0 && (
-              <tr><td colSpan={7} className="px-5 py-6 text-center text-muted">{projectFilter ? 'No tasks for this project yet.' : 'No tasks yet.'}</td></tr>
+            {!loading && filteredTasks.length === 0 && (
+              <tr><td colSpan={7} className="px-5 py-6 text-center text-muted">
+                {tasks.length === 0 ? (projectFilter ? 'No tasks for this project yet.' : 'No tasks yet.') : 'No tasks match these filters.'}
+              </td></tr>
             )}
             {pagedTasks.map((t) => (
               <tr key={t.id} className="border-b border-border last:border-0 hover:bg-slate-50">
@@ -181,7 +230,8 @@ export default function AdminTasks() {
             ))}
           </tbody>
         </table>
-        <Pagination page={page} totalItems={tasks.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+        </div>
+        <Pagination page={page} totalItems={filteredTasks.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
       <Modal
